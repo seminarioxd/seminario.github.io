@@ -1,0 +1,147 @@
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #121212;
+    color: #e0e0e0;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    color: #bb86fc;
+    margin-bottom: 30px;
+    font-weight: 300;
+}
+
+.scanner-container {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto 30px;
+    border: 3px solid #3700b3;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    background-color: #1e1e1e;
+}
+
+#scanner {
+    width: 100%;
+    display: block;
+}
+
+.scan-region {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 70%;
+    height: 70%;
+    border: 3px dashed #cf6679;
+    box-sizing: border-box;
+    pointer-events: none;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+button {
+    padding: 12px 24px;
+    background-color: #3700b3;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+button:hover {
+    background-color: #6200ee;
+    transform: translateY(-2px);
+}
+
+button:disabled {
+    background-color: #3d3d3d;
+    color: #666;
+    cursor: not-allowed;
+    transform: none;
+}
+
+#result {
+    background-color: #1e1e1e;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    border-left: 4px solid #3700b3;
+}
+
+.success {
+    color: #03dac6;
+    font-weight: bold;
+}
+
+.error {
+    color: #cf6679;
+    font-weight: bold;
+}
+
+.student-info {
+    margin-top: 15px;
+    padding: 15px;
+    background-color: #2d2d2d;
+    border-radius: 6px;
+    border-left: 3px solid #bb86fc;
+}
+
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,.1);
+    border-radius: 50%;
+    border-top-color: #bb86fc;
+    animation: spin 1s ease-in-out infinite;
+    margin: 10px auto;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+footer {
+    text-align: center;
+    margin-top: 40px;
+    color: #666;
+    font-size: 14px;
+    padding: 20px 0;
+    border-top: 1px solid #333;
+}
+/* Efectos adicionales */
+.scanner-container {
+    transition: all 0.3s ease;
+}
+.scanner-container:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+.student-info p {
+    margin: 8px 0;
+}
+strong {
+    color: #bb86fc;
+}
