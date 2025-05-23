@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exportador de Asistencias</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            margin: 20px auto;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2ecc71;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        #status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        #progress {
+            margin: 15px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .stat-box {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            min-width: 150px;
+            text-align: center;
+            margin: 10px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Exportador de Asistencias Estudiantiles</h1>
+        
+        <div id="status" class="info">
+            Presiona el botón para descargar todos los registros de asistencia
+        </div>
+        
+        <div class="stats" id="statsContainer" style="display: none;">
+            <div class="stat-box">
+                <div class="stat-value" id="totalStudents">0</div>
+                <div class="stat-label">Estudiantes</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="totalScans">0</div>
+                <div class="stat-label">Asistencias totales</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="lastScan">-</div>
+                <div class="stat-label">Última asistencia</div>
+            </div>
+        </div>
+        
+        <div id="progress"></div>
+        
+        <button id="exportBtn" onclick="exportData()">Exportar Datos a CSV</button>
+    </div>
+
+    <script>
+        // Configuración de Firebase (usa tu propia configuración)
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6hQukIQlH7mbvNJMLyfPsbuSt_GQSZrw",
+            authDomain: "seminario-d8721.firebaseapp.com",
+            projectId: "seminario-d8721",
+            storageBucket: "seminario-d8721.appspot.com",
+            messagingSenderId: "318710187015",
+            appId: "1:318710187015:web:e703442e858b3eed2ed6a2",
+            measurementId: "G-PVMBHCX9KG"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Función para formatear fecha
+        function formatDate(timestamp) {
+            if (!timestamp) return 'Nunca';
+            const date = timestamp.toDate();
+            return date.toLocaleString('es-CO', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Función para descargar el archivo CSV
+        function downloadCSV(data) {
+            const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'asistencias_estudiantiles.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Función para exportar los datos
+        async function exportData() {
+            const exportBtn = document.getElementById('exportBtn');
+            const statusDiv = document.getElementById('status');
+            const progressDiv = document.getElementById('progress');
+            const statsContainer = document.getElementById('statsContainer');
+            
+            exportBtn.disabled = true;
+            statusDiv.textContent = "Cargando datos de Firebase...";
+            statusDiv.className = "info";
+            progressDiv.textContent = "";
+            
+            try {
+                // Obtener todos los estudiantes
+                const querySnapshot = await db.collection('students').get();
+                
+                if (querySnapshot.empty) {
+                    statusDiv.textContent = "No se encontraron estudiantes en la base de datos";
+                    statusDiv.className = "error";
+                    return;
+                }
+                
+                // Preparar datos para CSV
+                let csvData = "Correo electrónico,Asistencias registradas,Última asistencia,Primer registro\n";
+                let totalScans = 0;
+                let lastScanDate = null;
+                
+                // Procesar cada documento
+                querySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    totalScans += data.scan_count || 0;
+                    
+                    // Actualizar última fecha de escaneo
+                    if (data.last_scan && (!lastScanDate || data.last_scan.toDate() > lastScanDate.toDate())) {
+                        lastScanDate = data.last_scan;
+                    }
+                    
+                    // Añadir fila al CSV
+                    csvData += `"${data.email}",${data.scan_count || 0},"${formatDate(data.last_scan)}","${formatDate(data.created_at)}"\n`;
+                });
+                
+                // Descargar el archivo CSV
+                downloadCSV(csvData);
+                
+                // Mostrar estadísticas
+                document.getElementById('totalStudents').textContent = querySnapshot.size;
+                document.getElementById('totalScans').textContent = totalScans;
+                document.getElementById('lastScan').textContent = lastScanDate ? formatDate(lastScanDate).split(',')[0] : '-';
+                statsContainer.style.display = 'flex';
+                
+                statusDiv.textContent = `Datos exportados exitosamente! ${querySnapshot.size} estudiantes procesados`;
+                statusDiv.className = "success";
+                
+            } catch (error) {
+                console.error("Error al exportar datos:", error);
+                statusDiv.textContent = `Error: ${error.message}`;
+                statusDiv.className = "error";
+            } finally {
+                exportBtn.disabled = false;
+            }
+        }
+
+        // Opcional: Cargar estadísticas al iniciar la página
+        window.onload = async function() {
+            try {
+                // Puedes añadir aquí una carga inicial de estadísticas si lo deseas
+            } catch (error) {
+                console.error("Error al cargar estadísticas iniciales:", error);
+            }
+        };
+    </script>
+</body>
+</html>
