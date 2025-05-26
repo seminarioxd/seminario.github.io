@@ -148,7 +148,7 @@ async function handleScannedCode(email) {
     setTimeout(() => {
         resultDiv.innerHTML = '<p>Escaneando código QR...</p>';
         requestAnimationFrame(scanQR);
-    }, 3000);
+    }, 6000);
 }
 
 // Función para validar email
