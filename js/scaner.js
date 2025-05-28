@@ -1,4 +1,3 @@
-
 // Configuración de Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyD6hQukIQlH7mbvNJMLyfPsbuSt_GQSZrw",
@@ -116,11 +115,40 @@ async function handleScannedCode(email) {
                 <p>El email no está registrado en la base de datos.</p>
             `;
         } else {
-            // Actualizar el registro del estudiante
             const doc = querySnapshot.docs[0];
             const studentData = doc.data();
             
-            // Incrementar el contador y actualizar last_scan
+            // Verificar si ya registró asistencia en la última hora
+            if (studentData.last_scan) {
+                const lastScanTime = studentData.last_scan.toDate();
+                const now = new Date();
+                const diffInMilliseconds = now - lastScanTime;
+                const diffInHours = diffInMilliseconds / (1000 * 60 * 60);
+                
+                if (diffInHours < 1) {
+                    const minutesLeft = Math.ceil(60 - (diffInHours * 60));
+                    const nextScanTime = new Date(lastScanTime.getTime() + 60 * 60 * 1000);
+                    
+                    resultDiv.innerHTML = `
+                        <p class="warning">Asistencia ya registrada recientemente</p>
+                        <div class="student-info">
+                            <p><strong>Estudiante:</strong> ${email}</p>
+                            <p><strong>Última asistencia:</strong> ${formatDateTime(lastScanTime)}</p>
+                            <p><strong>Puede registrar nuevamente a las:</strong> ${formatTime(nextScanTime)}</p>
+                            <p>Tiempo restante: ${minutesLeft} minutos</p>
+                        </div>
+                    `;
+                    
+                    // Esperar 5 segundos antes de volver a escanear
+                    setTimeout(() => {
+                        resultDiv.innerHTML = '<p>Escaneando código QR...</p>';
+                        requestAnimationFrame(scanQR);
+                    }, 5000);
+                    return;
+                }
+            }
+            
+            // Si no ha escaneado en la última hora o es la primera vez
             await doc.ref.update({
                 scan_count: firebase.firestore.FieldValue.increment(1),
                 last_scan: firebase.firestore.FieldValue.serverTimestamp()
@@ -132,7 +160,8 @@ async function handleScannedCode(email) {
                 <div class="student-info">
                     <p><strong>Estudiante:</strong> ${email}</p>
                     <p><strong>Asistencias totales:</strong> ${studentData.scan_count + 1}</p>
-                    <p><strong>Última asistencia:</strong> Ahora</p>
+                    <p><strong>Hora de registro:</strong> ${formatDateTime(new Date())}</p>
+                    <p><strong>Próximo escaneo permitido:</strong> Después de las ${formatTime(new Date(new Date().getTime() + 60 * 60 * 1000))}</p>
                 </div>
             `;
         }
@@ -144,17 +173,37 @@ async function handleScannedCode(email) {
         `;
     }
     
-    // Esperar 3 segundos antes de volver a escanear
+    // Esperar 5 segundos antes de volver a escanear
     setTimeout(() => {
         resultDiv.innerHTML = '<p>Escaneando código QR...</p>';
         requestAnimationFrame(scanQR);
-    }, 4000);
+    }, 5000);
 }
 
 // Función para validar email
 function validateEmail(email) {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
+}
+
+// Función para formatear fecha y hora
+function formatDateTime(date) {
+    return date.toLocaleString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+}
+
+// Función para formatear solo la hora
+function formatTime(date) {
+    return date.toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
 
 // Detener el escáner al cerrar la página
